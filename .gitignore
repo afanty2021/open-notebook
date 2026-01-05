@@ -135,5 +135,11 @@ specs/
 
 .playwright-mcp/
 
+<<<<<<< HEAD
 # Spec workflow templates
 .spec-workflow/
+=======
+
+
+**/*.local.md
+>>>>>>> upstream/main
