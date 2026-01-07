@@ -36,7 +36,7 @@ share/python-wheels/
 
 # PyInstaller
 *.manifest
-*.spec
+.spec
 
 # Installer logs
 pip-log.txt
@@ -96,7 +96,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# pytype static type analyzer
+# pytype static analyzer
 .pytype/
 
 # Cython debug symbols
@@ -135,11 +135,7 @@ specs/
 
 .playwright-mcp/
 
-<<<<<<< HEAD
 # Spec workflow templates
 .spec-workflow/
-=======
-
 
 **/*.local.md
->>>>>>> upstream/main
