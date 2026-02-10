@@ -36,7 +36,7 @@ This file provides architectural guidance for contributors working on Open Noteb
 │         Database (SurrealDB)                            │
 │         Graph database @ port 8000                      │
 ├─────────────────────────────────────────────────────────┤
-│ - Records: Notebook, Source, Note, ChatSession, etc.    │
+│ - Records: Notebook, Source, Note, ChatSession, Credential│
 │ - Relationships: source-to-notebook, note-to-source     │
 │ - Vector embeddings for semantic search                 │
 └─────────────────────────────────────────────────────────┘
@@ -57,6 +57,7 @@ User documentation is at @docs/
 - **Data Fetching**: TanStack Query (React Query)
 - **Styling**: Tailwind CSS + Shadcn/ui
 - **Build Tool**: Webpack (via Next.js)
+- **i18n compatible**: All front-end changes must also consider the translation keys
 
 ### API Backend (`api/` + `open_notebook/`)
 - **Framework**: FastAPI 0.104+
@@ -97,7 +98,8 @@ User documentation is at @docs/
 
 ### 3. Multi-Provider AI
 - **Esperanto library**: Unified interface to 8+ AI providers
-- **ModelManager**: Factory pattern with fallback logic
+- **Credential system**: Individual encrypted credential records per provider; models link to credentials for direct config
+- **ModelManager**: Factory pattern with fallback logic; uses credential config when available, env vars as fallback
 - **Smart selection**: Detects large contexts, prefers long-context models
 - **Override support**: Per-request model configuration
 
@@ -170,7 +172,7 @@ See dedicated CLAUDE.md files for detailed guidance:
 
 - **Unit tests**: `tests/test_domain.py`, `test_models_api.py`
 - **Graph tests**: `tests/test_graphs.py` (workflow integration)
-- **Utils tests**: `tests/test_utils.py`
+- **Utils tests**: `tests/test_utils.py`, `tests/test_chunking.py`, `tests/test_embedding.py`
 - **Run all**: `uv run pytest tests/`
 - **Coverage**: Check with `pytest --cov`
 

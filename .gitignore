@@ -131,10 +131,15 @@ doc_exports/
 
 specs/
 .claude
+.sisyphus
 
 .playwright-mcp/
 
 # Spec workflow templates
 .spec-workflow/
 
+# Spec workflow templates
+.spec-workflow/
+
+*.local.yml
 **/*.local.md

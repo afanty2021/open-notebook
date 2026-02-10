@@ -13,6 +13,7 @@ import { useNotes } from '@/lib/hooks/use-notes'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import { useNotebookColumnsStore } from '@/lib/stores/notebook-columns-store'
 import { useIsDesktop } from '@/lib/hooks/use-media-query'
+import { useTranslation } from '@/lib/hooks/use-translation'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FileText, StickyNote, MessageSquare } from 'lucide-react'
@@ -25,10 +26,11 @@ export interface ContextSelections {
 }
 
 export default function NotebookPage() {
+  const { t } = useTranslation()
   const params = useParams()
 
   // Ensure the notebook ID is properly decoded from URL
-  const notebookId = decodeURIComponent(params.id as string)
+  const notebookId = params?.id ? decodeURIComponent(params.id as string) : ''
 
   const { data: notebook, isLoading: notebookLoading } = useNotebook(notebookId)
   const {
@@ -56,16 +58,21 @@ export default function NotebookPage() {
     notes: {}
   })
 
-  // Initialize default selections when sources/notes load
+  // Initialize and update selections when sources load or change
   useEffect(() => {
     if (sources && sources.length > 0) {
       setContextSelections(prev => {
         const newSourceSelections = { ...prev.sources }
         sources.forEach(source => {
-          // Only set default if not already set
-          if (!(source.id in newSourceSelections)) {
-            // Default to 'insights' if has insights, otherwise 'full'
-            newSourceSelections[source.id] = source.insights_count > 0 ? 'insights' : 'full'
+          const currentMode = newSourceSelections[source.id]
+          const hasInsights = source.insights_count > 0
+
+          if (currentMode === undefined) {
+            // Initial setup - default based on insights availability
+            newSourceSelections[source.id] = hasInsights ? 'insights' : 'full'
+          } else if (currentMode === 'full' && hasInsights) {
+            // Source gained insights while in 'full' mode - auto-switch to 'insights'
+            newSourceSelections[source.id] = 'insights'
           }
         })
         return { ...prev, sources: newSourceSelections }
@@ -112,8 +119,8 @@ export default function NotebookPage() {
     return (
       <AppShell>
         <div className="p-6">
-          <h1 className="text-2xl font-bold mb-4">Notebook Not Found</h1>
-          <p className="text-muted-foreground">The requested notebook could not be found.</p>
+          <h1 className="text-2xl font-bold mb-4">{t.notebooks.notFound}</h1>
+          <p className="text-muted-foreground">{t.notebooks.notFoundDesc}</p>
         </div>
       </AppShell>
     )
@@ -135,15 +142,15 @@ export default function NotebookPage() {
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="sources" className="gap-2">
                       <FileText className="h-4 w-4" />
-                      Sources
+                      {t.navigation.sources}
                     </TabsTrigger>
                     <TabsTrigger value="notes" className="gap-2">
                       <StickyNote className="h-4 w-4" />
-                      Notes
+                      {t.common.notes}
                     </TabsTrigger>
                     <TabsTrigger value="chat" className="gap-2">
                       <MessageSquare className="h-4 w-4" />
-                      Chat
+                      {t.common.chat}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>

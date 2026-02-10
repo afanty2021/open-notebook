@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -12,8 +13,10 @@ from open_notebook.exceptions import (
     NotFoundError,
 )
 from open_notebook.graphs.chat import graph as chat_graph
+from open_notebook.utils.graph_utils import get_session_message_count
 
 router = APIRouter()
+
 
 # Request/Response models
 class CreateSessionRequest(BaseModel):
@@ -100,20 +103,28 @@ async def get_sessions(notebook_id: str = Query(..., description="Notebook ID"))
             raise HTTPException(status_code=404, detail="Notebook not found")
 
         # Get sessions for this notebook
-        sessions = await notebook.get_chat_sessions()
+        sessions_list = await notebook.get_chat_sessions()
 
-        return [
-            ChatSessionResponse(
-                id=session.id or "",
-                title=session.title or "Untitled Session",
-                notebook_id=notebook_id,
-                created=str(session.created),
-                updated=str(session.updated),
-                message_count=0,  # TODO: Add message count if needed
-                model_override=getattr(session, "model_override", None),
+        results = []
+        for session in sessions_list:
+            session_id = str(session.id)
+
+            # Get message count from LangGraph state
+            msg_count = await get_session_message_count(chat_graph, session_id)
+
+            results.append(
+                ChatSessionResponse(
+                    id=session.id or "",
+                    title=session.title or "Untitled Session",
+                    notebook_id=notebook_id,
+                    created=str(session.created),
+                    updated=str(session.updated),
+                    message_count=msg_count,
+                    model_override=getattr(session, "model_override", None),
+                )
             )
-            for session in sessions
-        ]
+
+        return results
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Notebook not found")
     except Exception as e:
@@ -134,7 +145,8 @@ async def create_session(request: CreateSessionRequest):
 
         # Create new session
         session = ChatSession(
-            title=request.title or f"Chat Session {asyncio.get_event_loop().time():.0f}",
+            title=request.title
+            or f"Chat Session {asyncio.get_event_loop().time():.0f}",
             model_override=request.model_override,
         )
         await session.save()
@@ -178,8 +190,10 @@ async def get_session(session_id: str):
             raise HTTPException(status_code=404, detail="Session not found")
 
         # Get session state from LangGraph to retrieve messages
-        thread_state = chat_graph.get_state(
-            config=RunnableConfig(configurable={"thread_id": session_id})
+        # Use sync get_state() in a thread since SqliteSaver doesn't support async
+        thread_state = await asyncio.to_thread(
+            chat_graph.get_state,
+            config=RunnableConfig(configurable={"thread_id": full_session_id}),
         )
 
         # Extract messages from state
@@ -270,13 +284,16 @@ async def update_session(session_id: str, request: UpdateSessionRequest):
         )
         notebook_id = notebook_query[0]["out"] if notebook_query else None
 
+        # Get message count from LangGraph state
+        msg_count = await get_session_message_count(chat_graph, full_session_id)
+
         return ChatSessionResponse(
             id=session.id or "",
             title=session.title or "",
             notebook_id=notebook_id,
             created=str(session.created),
             updated=str(session.updated),
-            message_count=0,
+            message_count=msg_count,
             model_override=session.model_override,
         )
     except NotFoundError:
@@ -333,10 +350,10 @@ async def execute_chat(request: ExecuteChatRequest):
         )
 
         # Get current state
-        current_state = chat_graph.get_state(
-            config=RunnableConfig(
-                configurable={"thread_id": request.session_id}
-            )
+        # Use sync get_state() in a thread since SqliteSaver doesn't support async
+        current_state = await asyncio.to_thread(
+            chat_graph.get_state,
+            config=RunnableConfig(configurable={"thread_id": full_session_id}),
         )
 
         # Prepare state for execution
@@ -356,7 +373,7 @@ async def execute_chat(request: ExecuteChatRequest):
             input=state_values,  # type: ignore[arg-type]
             config=RunnableConfig(
                 configurable={
-                    "thread_id": request.session_id,
+                    "thread_id": full_session_id,
                     "model_id": model_override,
                 }
             ),
@@ -381,7 +398,13 @@ async def execute_chat(request: ExecuteChatRequest):
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
     except Exception as e:
-        logger.error(f"Error executing chat: {str(e)}")
+        # Log detailed error with context for debugging
+        logger.error(
+            f"Error executing chat: {str(e)}\n"
+            f"  Session ID: {request.session_id}\n"
+            f"  Model override: {request.model_override}\n"
+            f"  Traceback:\n{traceback.format_exc()}"
+        )
         raise HTTPException(status_code=500, detail=f"Error executing chat: {str(e)}")
 
 

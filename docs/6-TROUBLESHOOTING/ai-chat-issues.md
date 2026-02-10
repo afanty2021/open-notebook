@@ -4,48 +4,95 @@ Problems with AI models, chat, and response quality.
 
 ---
 
+## "Failed to send message" Error
+
+**Symptom:** Chat shows "Failed to send message" toast. Logs show:
+```
+Error executing chat: Model is not a LanguageModel: None
+```
+
+**Cause:** No valid language model configured for chat
+
+**Solutions:**
+
+### Solution 1: Check Default Model Configuration
+```
+1. Go to Settings → Models
+2. Scroll to "Default Models" section
+3. Verify "Default Chat Model" has a model selected
+4. If empty, select an available language model
+5. Click Save
+```
+
+### Solution 2: Verify Model Names (Ollama Users)
+```bash
+# Get exact model names
+ollama list
+
+# Example output:
+# NAME                   SIZE      MODIFIED
+# gemma3:12b            8.1 GB    2 months ago
+
+# The model name in Open Notebook must be EXACTLY "gemma3:12b"
+# NOT "gemma3" or "gemma3-12b"
+```
+
+### Solution 3: Re-add Missing Models
+```
+1. Note the exact model names from your provider
+2. Go to Settings → Models
+3. Delete any misconfigured models
+4. Add models with exact names
+5. Set new defaults
+```
+
+### Solution 4: Check Model Still Exists
+```bash
+# For Ollama: verify model is installed
+ollama list
+
+# For cloud providers: verify API key is valid
+# and you have access to the model
+```
+
+> **Tip:** This error often occurs when you delete a model from Ollama but forget to update the default models in Open Notebook. Always re-configure defaults after removing models.
+
+---
+
 ## "Models not available" or "Models not showing"
 
 **Symptom:** Settings → Models shows empty, or "No models configured"
 
-**Cause:** Missing or invalid API key
+**Cause:** No credential configured, or credential has invalid API key
 
 **Solutions:**
 
-### Solution 1: Add API Key
-```bash
-# Check .env has your API key:
-cat .env | grep -i "OPENAI\|ANTHROPIC\|GOOGLE"
-
-# Should see something like:
-# OPENAI_API_KEY=sk-proj-...
-
-# If missing, add it:
-OPENAI_API_KEY=sk-proj-your-key-here
-
-# Save and restart:
-docker compose restart api
-
-# Wait 10 seconds, then refresh browser
+### Solution 1: Add Credential via Settings UI
+```
+1. Go to Settings → API Keys
+2. Click "Add Credential"
+3. Select your provider (e.g., OpenAI, Anthropic, Google)
+4. Enter your API key
+5. Click Save, then Test Connection
+6. Click Discover Models → Register Models
+7. Go to Settings → Models to verify
 ```
 
 ### Solution 2: Check Key is Valid
-```bash
-# Test API key directly:
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer sk-proj-..."
-
-# Should return list of models
-# If error: key is invalid
+```
+1. Go to Settings → API Keys
+2. Click "Test Connection" on your credential
+3. If it shows "Invalid API key":
+   - Get a fresh key from the provider's website
+   - Delete the credential and create a new one
 ```
 
 ### Solution 3: Switch Provider
-```bash
-# Try a different provider:
-# Remove: OPENAI_API_KEY
-# Add: ANTHROPIC_API_KEY=sk-ant-...
-
-# Restart and check Settings → Models
+```
+1. Go to Settings → API Keys
+2. Add a credential for a different provider
+3. Test Connection → Discover Models → Register Models
+4. Go to Settings → Models to select the new provider's models
 ```
 
 ---
@@ -54,47 +101,42 @@ curl https://api.openai.com/v1/models \
 
 **Symptom:** Error when trying to chat: "Invalid API key"
 
-**Cause:** API key wrong, expired, or revoked
+**Cause:** Credential has wrong, expired, or revoked API key
 
 **Solutions:**
 
-### Step 1: Verify Key Format
-```bash
-# OpenAI: Should start with sk-proj-
-# Anthropic: Should start with sk-ant-
-# Google: Should be AIzaSy...
-
-# Check in .env:
-cat .env | grep OPENAI_API_KEY
+### Step 1: Test Your Credential
+```
+1. Go to Settings → API Keys
+2. Click "Test Connection" on your credential
+3. If it fails, proceed to Step 2
 ```
 
 ### Step 2: Get Fresh Key
-```bash
-# Go to provider's dashboard:
-# - OpenAI: https://platform.openai.com/api-keys
-# - Anthropic: https://console.anthropic.com/
-# - Google: https://aistudio.google.com/app/apikey
+```
+Go to provider's dashboard:
+- OpenAI: https://platform.openai.com/api-keys (starts with sk-proj-)
+- Anthropic: https://console.anthropic.com/ (starts with sk-ant-)
+- Google: https://aistudio.google.com/app/apikey (starts with AIzaSy)
 
-# Generate new key
-# Copy exactly (no extra spaces)
+Generate new key and copy exactly (no extra spaces)
 ```
 
-### Step 3: Update .env
-```bash
-# Edit .env:
-OPENAI_API_KEY=sk-proj-new-key-here
-# No quotes needed, no spaces
-
-# Save and restart:
-docker compose restart api
+### Step 3: Update Credential
+```
+1. Go to Settings → API Keys
+2. Delete the old credential
+3. Click "Add Credential" → select provider
+4. Paste the new key
+5. Click Save, then Test Connection
+6. Re-discover and register models if needed
 ```
 
 ### Step 4: Verify in UI
 ```
-1. Open Open Notebook
-2. Go to Settings → Models
-3. Select your provider
-4. Should show available models
+1. Go to Settings → Models
+2. Verify models are available
+3. Try a test chat
 ```
 
 ---

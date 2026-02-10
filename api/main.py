@@ -17,6 +17,7 @@ from api.routers import (
     chat,
     config,
     context,
+    credentials,
     embedding,
     embedding_rebuild,
     episode_profiles,
@@ -34,10 +35,10 @@ from api.routers import (
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
+from open_notebook.utils.encryption import get_secret_from_env
 
 # Import commands to register them in the API process
 try:
-
     logger.info("Commands imported in API process")
 except Exception as e:
     logger.error(f"Failed to import commands in API process: {e}")
@@ -49,8 +50,20 @@ async def lifespan(app: FastAPI):
     Lifespan event handler for the FastAPI application.
     Runs database migrations automatically on startup.
     """
-    # Startup: Run database migrations
+    import os
+
+    # Startup: Security checks
     logger.info("Starting API initialization...")
+
+    # Security check: Encryption key
+    if not get_secret_from_env("OPEN_NOTEBOOK_ENCRYPTION_KEY"):
+        logger.warning(
+            "OPEN_NOTEBOOK_ENCRYPTION_KEY not set. "
+            "API key encryption will fail until this is configured. "
+            "Set OPEN_NOTEBOOK_ENCRYPTION_KEY to any secret string."
+        )
+
+    # Run database migrations
 
     try:
         migration_manager = AsyncMigrationManager()
@@ -61,9 +74,13 @@ async def lifespan(app: FastAPI):
             logger.warning("Database migrations are pending. Running migrations...")
             await migration_manager.run_migration_up()
             new_version = await migration_manager.get_current_version()
-            logger.success(f"Migrations completed successfully. Database is now at version {new_version}")
+            logger.success(
+                f"Migrations completed successfully. Database is now at version {new_version}"
+            )
         else:
-            logger.info("Database is already at the latest version. No migrations needed.")
+            logger.info(
+                "Database is already at the latest version. No migrations needed."
+            )
     except Exception as e:
         logger.error(f"CRITICAL: Database migration failed: {str(e)}")
         logger.exception(e)
@@ -82,13 +99,23 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Open Notebook API",
     description="API for Open Notebook - Research Assistant",
-    version="0.2.2",
     lifespan=lifespan,
 )
 
 # Add password authentication middleware first
 # Exclude /api/auth/status and /api/config from authentication
-app.add_middleware(PasswordAuthMiddleware, excluded_paths=["/", "/health", "/docs", "/openapi.json", "/redoc", "/api/auth/status", "/api/config"])
+app.add_middleware(
+    PasswordAuthMiddleware,
+    excluded_paths=[
+        "/",
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        "/api/auth/status",
+        "/api/config",
+    ],
+)
 
 # Add CORS middleware last (so it processes first)
 app.add_middleware(
@@ -119,7 +146,7 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
         status_code=exc.status_code,
         content={"detail": exc.detail},
         headers={
-            "Access-Control-Allow-Origin": origin,
+            **(exc.headers or {}), "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
             "Access-Control-Allow-Methods": "*",
             "Access-Control-Allow-Headers": "*",
@@ -136,7 +163,9 @@ app.include_router(models.router, prefix="/api", tags=["models"])
 app.include_router(transformations.router, prefix="/api", tags=["transformations"])
 app.include_router(notes.router, prefix="/api", tags=["notes"])
 app.include_router(embedding.router, prefix="/api", tags=["embedding"])
-app.include_router(embedding_rebuild.router, prefix="/api/embeddings", tags=["embeddings"])
+app.include_router(
+    embedding_rebuild.router, prefix="/api/embeddings", tags=["embeddings"]
+)
 app.include_router(settings.router, prefix="/api", tags=["settings"])
 app.include_router(context.router, prefix="/api", tags=["context"])
 app.include_router(sources.router, prefix="/api", tags=["sources"])
@@ -147,6 +176,7 @@ app.include_router(episode_profiles.router, prefix="/api", tags=["episode-profil
 app.include_router(speaker_profiles.router, prefix="/api", tags=["speaker-profiles"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(source_chat.router, prefix="/api", tags=["source-chat"])
+app.include_router(credentials.router, prefix="/api", tags=["credentials"])
 
 
 @app.get("/")
