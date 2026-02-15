@@ -57,18 +57,18 @@ User documentation is at @docs/
 - **Data Fetching**: TanStack Query (React Query)
 - **Styling**: Tailwind CSS + Shadcn/ui
 - **Build Tool**: Webpack (via Next.js)
-- **i18n compatible**: All front-end changes must also consider the translation keys
+- **i18n**: Full internationalization (en, fr-FR, ru-RU, it-IT, zh-CN)
 
 ### API Backend (`api/` + `open_notebook/`)
 - **Framework**: FastAPI 0.104+
 - **Language**: Python 3.11+
 - **Workflows**: LangGraph state machines
 - **Database**: SurrealDB async driver
-- **AI Providers**: Esperanto library (8+ providers: OpenAI, Anthropic, Google, Groq, Ollama, Mistral, DeepSeek, xAI)
-- **Job Queue**: Surreal-Commands for async jobs (podcasts)
+- **AI Providers**: Esperanto library (14+ providers: OpenAI, Anthropic, Google, Groq, Ollama, Mistral, DeepSeek, xAI, OpenRouter, Voyage AI, ElevenLabs, Azure OpenAI, OpenAI-Compatible, Vertex AI)
+- **Job Queue**: Surreal-Commands for async jobs (podcasts, embeddings)
 - **Logging**: Loguru
 - **Validation**: Pydantic v2
-- **Testing**: Pytest
+- **Testing**: Pytest + CI workflow (GitHub Actions)
 
 ### Database
 - **SurrealDB**: Graph database with built-in embedding storage and vector search
@@ -97,11 +97,12 @@ User documentation is at @docs/
 - All use `provision_langchain_model()` for smart model selection
 
 ### 3. Multi-Provider AI
-- **Esperanto library**: Unified interface to 8+ AI providers
+- **Esperanto library**: Unified interface to 14+ AI providers
 - **Credential system**: Individual encrypted credential records per provider; models link to credentials for direct config
 - **ModelManager**: Factory pattern with fallback logic; uses credential config when available, env vars as fallback
 - **Smart selection**: Detects large contexts, prefers long-context models
 - **Override support**: Per-request model configuration
+- **Security**: Field-level encryption (Fernet AES-128-CBC + HMAC-SHA256) for API keys at rest
 
 ### 4. Database Schema
 - **Automatic migrations**: AsyncMigrationManager runs on API startup
@@ -109,9 +110,13 @@ User documentation is at @docs/
 - **Vector search**: Built-in semantic search across all content
 - **Transactions**: Repo functions handle ACID operations
 
-### 5. Authentication
+### 5. Authentication & Credentials
 - **Current**: Simple password middleware (insecure, dev-only)
 - **Production**: Replace with OAuth/JWT (see CONFIGURATION.md)
+- **Credential Management**: Settings → API Keys page for managing 14+ AI provider credentials
+- **Encryption**: Field-level encryption (Fernet AES-128-CBC + HMAC-SHA256) for API keys at rest
+- **Connection Testing**: One-click testing per credential with model discovery
+- **Import Tool**: Migrate environment variable keys into the credential system
 
 ---
 
@@ -141,6 +146,12 @@ User documentation is at @docs/
 - **File extraction**: Uses content-core library; supports 50+ file types
 - **URL handling**: Extracts text + metadata from web pages
 - **Large files**: Content processing is sync; may block API briefly
+- **Empty content handling**: Empty/whitespace-only sources no longer trigger retry loops
+
+### Embeddings
+- **Optional embedding field**: Embedding field is now optional; sources/notes can exist without embeddings
+- **Batch embedding**: Use `embed_source_command` for efficient single-API-call chunk embedding
+- **Content-type aware**: Automatic HTML/Markdown/plain text detection for optimal chunking
 
 ---
 
@@ -148,13 +159,10 @@ User documentation is at @docs/
 
 See dedicated CLAUDE.md files for detailed guidance:
 
-- **[frontend/CLAUDE.md](frontend/CLAUDE.md)**: React/Next.js architecture, state management, API integration
-- **[api/CLAUDE.md](api/CLAUDE.md)**: FastAPI structure, service pattern, endpoint development
-- **[open_notebook/CLAUDE.md](open_notebook/CLAUDE.md)**: Backend core, domain models, LangGraph workflows, AI provisioning
-- **[open_notebook/domain/CLAUDE.md](open_notebook/domain/CLAUDE.md)**: Data models, repository pattern, search functions
-- **[open_notebook/ai/CLAUDE.md](open_notebook/ai/CLAUDE.md)**: ModelManager, AI provider integration, Esperanto usage
-- **[open_notebook/graphs/CLAUDE.md](open_notebook/graphs/CLAUDE.md)**: LangGraph workflow design, state machines
-- **[open_notebook/database/CLAUDE.md](open_notebook/database/CLAUDE.md)**: SurrealDB operations, migrations, async patterns
+- **[commands/CLAUDE.md](commands/CLAUDE.md)**: Async command handlers for job queue (embeddings, podcasts, transformations)
+- **Frontend**: See `frontend/src/lib/locales/` for i18n structure, `frontend/src/components/` for UI components
+- **API**: See `api/routers/` for endpoints, `api/main.py` for server configuration
+- **Backend Core**: See `open_notebook/domain/` for data models, `open_notebook/graphs/` for LangGraph workflows
 
 ---
 
@@ -175,6 +183,7 @@ See dedicated CLAUDE.md files for detailed guidance:
 - **Utils tests**: `tests/test_utils.py`, `tests/test_chunking.py`, `tests/test_embedding.py`
 - **Run all**: `uv run pytest tests/`
 - **Coverage**: Check with `pytest --cov`
+- **CI Pipeline**: GitHub Actions workflow (`.github/workflows/test.yml`) runs on every PR and push to main
 
 ---
 
