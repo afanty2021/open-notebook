@@ -7,6 +7,114 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.4] - 2026-04-09
+
+### Security
+- Fix Remote Code Execution (RCE) via Jinja2 Server-Side Template Injection in transformations (CVSS 9.2 Critical)
+- Fix arbitrary file write via path traversal in file upload (CVSS 7.0 High)
+- Fix arbitrary file read via Local File Inclusion in source creation (CVSS 8.2 High)
+
+### Dependencies
+- Bump ai-prompter to >=0.4.0 (uses Jinja2 SandboxedEnvironment to prevent SSTI)
+
+## [1.8.3] - 2026-04-07
+
+### Security
+- Fix SurrealDB injection via unsanitized `order_by` query parameter in `GET /api/notebooks` (CVSS 8.7 High)
+- Add allowlist validation for sorting parameters in notebooks endpoint
+- Replace f-string query interpolation with parameterized `$variable` binding in source chat and migration queries
+- Add defensive validation in `get_all()` base method to prevent injection via `order_by` parameter
+
+## [1.8.2] - 2026-04-06
+
+### Added
+- DashScope (Qwen) and MiniMax provider support via Esperanto v2.20.0 (#725)
+- Source list auto-refresh after adding a new source via URL, file upload, or text (#721)
+
+### Fixed
+- Source asset persistence — failed sources now persist their asset (URL/file path), making them identifiable and retryable (#722)
+- Source title preservation — user-set custom titles are no longer overwritten after background processing (#722)
+- Credential cascade delete — deleting a credential now removes linked models instead of returning a 409 error (#722)
+- Podcast directory names — uses UUID for episode directories, fixing filesystem errors with special characters (#666)
+- Tiktoken offline handling — API no longer crashes in air-gapped environments (#622)
+- SurrealDB healthcheck — removed incompatible healthcheck from Docker Compose (#656)
+- Esperanto embedding fixes — base_url/api_key config issues across multiple embedding providers (#664, #665)
+
+### Docs
+- Deprecated single-container Docker image in favor of Docker Compose (#723)
+
+### Dependencies
+- Bump esperanto to >=2.20.0
+
+## [1.8.1] - 2026-03-10
+
+### Added
+- i18n support for Bengali (bn-IN) (#643)
+- Podcast language support via podcast-creator 0.12.0 (#645)
+- Upgrade default Azure API version for model testing and fetching (#638)
+
+### Fixed
+- Tiktoken network errors in offline/air-gapped Docker deployments — pre-downloads encoding at build time (#264, #622)
+- SurrealDB getting stuck (#656)
+
+### Dependencies
+- Bump esperanto to 2.19.5 (#657)
+- Bump langgraph from 1.0.6 to 1.0.10rc1 (#658)
+- Bump authlib from 1.6.6 to 1.6.7 (#649)
+- Bump lxml-html-clean from 0.4.3 to 0.4.4 (#646)
+- Bump rollup from 4.55.1 to 4.59.0 (#635)
+- Bump minimatch in frontend (#634)
+- Bump tar from 7.5.9 to 7.5.11 (#650, #659)
+
+## [1.7.4] - 2026-02-18
+
+### Fixed
+- Embedding large documents (3MB+) fails with 413 Payload Too Large (#594)
+- `generate_embeddings()` now batches texts in groups of 50 with per-batch retry, preventing provider payload limits from being exceeded
+- 413 errors now classified with user-friendly message in error classifier
+- Misleading "Created 0 embedded chunks" log in `process_source_command` — embedding is fire-and-forget, so the count was always 0; now logs "embedding submitted" instead
+
+## [1.7.3] - 2026-02-17
+
+### Added
+- Retry button for failed podcast episodes in the UI (#211, #218)
+- Error details displayed on failed podcast episodes (#185, #355)
+- `POST /podcasts/episodes/{id}/retry` API endpoint for re-submitting failed episodes
+- `error_message` field in podcast episode API responses
+
+### Fixed
+- Podcast generation failures now correctly marked as "failed" instead of "completed" (#300, #335)
+- Disabled automatic retries for podcast generation to prevent duplicate episode records (#302)
+
+### Dependencies
+- Bump podcast-creator to >= 0.11.2
+- Bump esperanto to >= 2.19.4
+
+## [1.7.2] - 2026-02-16
+
+### Added
+- Error classification utility that maps LLM provider errors to user-friendly messages (#506)
+- Global exception handlers in FastAPI for all custom exception types with proper HTTP status codes
+- `getApiErrorMessage()` frontend helper that falls back to backend messages when no i18n mapping exists
+
+### Fixed
+- LLM errors (invalid API key, wrong model, rate limits) now show descriptive messages instead of "An unexpected error occurred" (#590)
+- SSE streaming error events in source chat and ask hooks were swallowed by inner JSON parse catch blocks
+- Transformation execution errors were caught and re-wrapped as generic 500s instead of using proper status codes
+- Fail fast when source content extraction returns empty instead of retrying (#589)
+- Chat input and message overflow with long unbroken strings (#588)
+- Word-wrap overflow in source cards, note editor, inline edit, note titles, and dialog content (#588)
+- Translation proxy shadowing `name` keys (#588)
+- OpenAI-compatible provider name handling via Esperanto update (#583)
+
+### Changed
+- `ValueError` replaced with `ConfigurationError` in model provisioning for proper error classification
+- `ConfigurationError` added to command retry `stop_on` lists to avoid retrying permanent config failures
+
+### Dependencies
+- Bump esperanto to 2.19.3 (#583)
+- Bump podcast-creator to 0.9.1
+
 ## [1.7.1] - 2026-02-14
 
 ### Added

@@ -1,12 +1,12 @@
-# Single Container Installation
+# Single Container Installation (Deprecated)
+
+> **Deprecation Notice:** The single-container image (`v1-latest-single`) is **deprecated** and will be removed in v2. Please migrate to [Docker Compose](docker-compose.md), which is the recommended installation method for all users. The single-container image will continue to receive updates until v2 is released, but no new features or documentation will target it.
 
 All-in-one container setup. **Simpler than Docker Compose, but less flexible.**
 
 **Best for:** PikaPods, Railway, shared hosting, minimal setups
 
 > **Alternative Registry:** Images available on both Docker Hub (`lfnovo/open_notebook:v1-latest-single`) and GitHub Container Registry (`ghcr.io/lfnovo/open-notebook:v1-latest-single`).
-
-> **Note**: While this is a simple way to get started, we recommend [Docker Compose](docker-compose.md) for most users. Docker Compose is more flexible and will make it easier if we add more services to the setup in the future. This single-container option is best for platforms that specifically require it (PikaPods, Railway, etc.).
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ services:
       - OPEN_NOTEBOOK_ENCRYPTION_KEY=change-me-to-a-secret-string
       - SURREAL_URL=ws://localhost:8000/rpc
       - SURREAL_USER=root
-      - SURREAL_PASSWORD=password
+      - SURREAL_PASSWORD=root
       - SURREAL_NAMESPACE=open_notebook
       - SURREAL_DATABASE=open_notebook
     volumes:
@@ -106,7 +106,9 @@ heroku config:set OPEN_NOTEBOOK_ENCRYPTION_KEY=your-secret-key
 | `OPEN_NOTEBOOK_ENCRYPTION_KEY` | Encryption key for credentials (required) | `my-secret-key` |
 | `SURREAL_URL` | Database | `ws://localhost:8000/rpc` |
 | `SURREAL_USER` | DB user | `root` |
-| `SURREAL_PASSWORD` | DB password | `password` |
+| `SURREAL_PASSWORD` | DB password | `root` |
+| `SURREAL_NAMESPACE` | DB namespace | `open_notebook` |
+| `SURREAL_DATABASE` | DB name | `open_notebook` |
 | `API_URL` | External URL (for remote access) | `https://myapp.example.com` |
 
 AI provider API keys are configured via the **Settings → API Keys** UI after deployment.
